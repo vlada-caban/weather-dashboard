@@ -1,5 +1,13 @@
+//!need to hide API key
+// dotenv.config()
+// const apiKey = process.env.API_KEY;
 const apiKey = "";
-let todaysDate = dayjs().format("M/D/YYYY"); 
+
+let todaysDate = dayjs().format("M/D/YYYY");
+let tomorrowDate = dayjs().add(1, "day").startOf('day').format("YYYY-MM-DD HH:mm:ss");
+
+console.log(todaysDate);
+console.log(tomorrowDate);
 
 let queryURL = "http://api.openweathermap.org/data/2.5/weather?";
 
@@ -11,15 +19,59 @@ async function checkWeather(cityInput) {
   $("#current-city").text("");
 
   //getting latitude and longitude info by city name
+
   const response = await fetch(
-    queryURL + "q=" + cityInput + "&appid=" + apiKey
+    queryURL + "q=" + cityInput + "&units=imperial&appid=" + apiKey
   );
   let data = await response.json();
+
+  if (
+    data.cod === "404" ||
+    data.cod === "401" ||
+    data.cod === "500" ||
+    data.cod === "400"
+  ) {
+    alert("Invalid city name");
+  }
+
+  console.log(data);
+
+  console.log(dayjs((data.dt + data.timezone) * 1000).toDate());
 
   let latInfo = data.coord.lat;
   let lonInfo = data.coord.lon;
 
-  //adding lat and lon to the forecast url to get full forecast
+  //getting necessary data to display today's weather
+  let cityName = data.name;
+  let countryName = data.sys.country;
+  let temp = Math.round(data.main.temp);
+  let humidity = data.main.humidity;
+  let wind = data.wind.speed;
+  let timeOfRead = dayjs((data.dt + data.timezone) * 1000).format(
+    "MMM DD, YYYY [at] HH:mm"
+  );
+
+  //rendering today's weather to the webpage
+  //TODO: need to add icon for the weather
+  const cityDate = $("<h2>")
+    .text(cityName + ", " + countryName)
+    .addClass("fs-4");
+
+  const readTime = $("<p>").text("(Last read local time: " + timeOfRead + ")");
+
+  const tempToDisplay = $("<p>").text("Temperature: " + temp + "°F");
+  const humidityToDisplay = $("<p>").text("Humidity: " + humidity + "%");
+  const windToDisplay = $("<p>").text("Wind: " + wind + " MPH");
+
+  $("#current-city").append(
+    cityDate,
+    readTime,
+    tempToDisplay,
+    humidityToDisplay,
+    windToDisplay
+  );
+
+  //adding lat and lon to the forecast url to get 5 day forecast
   let getForecastURL =
     "http://api.openweathermap.org/data/2.5/forecast?lat=" +
     latInfo +
@@ -31,30 +83,14 @@ async function checkWeather(cityInput) {
   const responseTwo = await fetch(getForecastURL);
   let dataTwo = await responseTwo.json();
 
-  // console.log(dataTwo);
+console.log(dayjs((dataTwo.list[0].dt + dataTwo.city.timezone) * 1000).toDate());
 
-  //getting necessary data to display today's weather
-  let cityName = dataTwo.city.name;
-  let temp = Math.round(dataTwo.list[0].main.temp);
-  let humidity = dataTwo.list[0].main.humidity;
-  let wind = dataTwo.list[0].wind.speed;
-
-  //rendering today's weather to the webpage
-  //TODO: need to add icon for the weather. What data field to use?
-  const cityDate = $("<h2>")
-    .text(cityName + " (" + todaysDate + ")")
-    .addClass("fs-4");
-
-  const tempToDisplay = $("<p>").text("Temperature: " + temp + "°F");
-  const humidityToDisplay = $("<p>").text("Humidity: " + humidity + "%");
-  const windToDisplay = $("<p>").text("Wind: " + wind + " MPH");
-
-  $("#current-city").append(
-    cityDate,
-    tempToDisplay,
-    humidityToDisplay,
-    windToDisplay
-  );
+  console.log(dataTwo);
+  
+  for (let i = 0; i < dataTwo.list.length; i = i + 8) {
+    console.log(dataTwo.list[i]);
+  }
+  //dayjs().add(1,'day').startOf('day').unix()
 
   //storing into object city details and date added
   //TODO: Need to check if already exist
@@ -83,16 +119,12 @@ async function checkWeather(cityInput) {
     .text(cityName);
 
   $(".btn-group-vertical").append(newBtnCity);
-//TODO: add even listener for all the buttons on the page to display data for that city
+  //TODO: add even listener for all the buttons on the page to display data for that city
 
-//TODO: retrieve and render 5-day forecast to the page
-
-
-
+  //TODO: retrieve and render 5-day forecast to the page
 }
 
-$("#search-btn").on("click", function() {
+$("#search-btn").on("click", function (e) {
+  e.preventDefault(e);
   checkWeather($("#search-input").val());
-})
-
-
+});
