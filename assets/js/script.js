@@ -1,30 +1,80 @@
-//!need to hide API key
-// dotenv.config()
-// const apiKey = process.env.API_KEY;
 const apiKey = "";
-
-let todaysDate = dayjs().format("M/D/YYYY");
-let tomorrowDate = dayjs().add(1, "day").startOf('day').format("YYYY-MM-DD HH:mm:ss");
-
-console.log(todaysDate);
-console.log(tomorrowDate);
 
 let queryURL = "http://api.openweathermap.org/data/2.5/weather?";
 
 let localStorageData = JSON.parse(localStorage.getItem("recentCitiesData"));
 
+let latInfo;
+let lonInfo;
+
+let timeOfReadNextDay;
+
+let data;
 //TODO: Need to render to the page top 10 latest saved cities
+
+function storeCityAddBtn(cityNameInput) {
+  //storing into object city details and date added
+  //TODO: Need to check if already exist
+  //TODO: if exists, need to replace
+  //TODO: can I make it a separate function?
+  let cityDetails = {
+    cityNameStorage: cityNameInput,
+    dateTimeStored: dayjs().format("M/D/YYYY, H:m:s"),
+  };
+
+  //pushing details into local storage data array
+  if (localStorageData === null) {
+    localStorageData = [];
+    localStorageData.push(cityDetails);
+  } else {
+    localStorageData.push(cityDetails);
+  }
+
+  //saving local storage data array into localStorage in the browser
+  localStorage.setItem("recentCitiesData", JSON.stringify(localStorageData));
+
+  //adding button on the left with new city name
+  //TODO: Need to check if already exist OR rerender from the storage
+  const newBtnCity = $("<button>")
+    .addClass("btn btn-secondary m-2 rounded-3")
+    .text(cityNameInput);
+
+  $(".btn-group-vertical").append(newBtnCity);
+  //TODO: add even listener for all the buttons on the page to display data for that city
+
+  //TODO: retrieve and render 5-day forecast to the page
+}
+
+
+
+async function renderFiveDays() {
+  //adding lat and lon to the forecast url to get 5 day forecast
+  let getForecastURL =
+    "http://api.openweathermap.org/data/2.5/forecast?lat=" +
+    latInfo +
+    "&lon=" +
+    lonInfo +
+    "&units=imperial&appid=" +
+    apiKey;
+
+  const responseTwo = await fetch(getForecastURL);
+  let dataTwo = await responseTwo.json();
+
+  console.log(dataTwo);
+  console.log("Next day (in 5 day forecast function): " + timeOfReadNextDay);
+
+}
+
 
 async function checkWeather(cityInput) {
   $("#current-city").text("");
 
-  //getting latitude and longitude info by city name
-
   const response = await fetch(
     queryURL + "q=" + cityInput + "&units=imperial&appid=" + apiKey
   );
-  let data = await response.json();
+  data = await response.json();
 
+  //checking if errors with city entry
   if (
     data.cod === "404" ||
     data.cod === "401" ||
@@ -36,12 +86,11 @@ async function checkWeather(cityInput) {
 
   console.log(data);
 
-  console.log(dayjs((data.dt + data.timezone) * 1000).toDate());
+  //extracting latitude and longitude info to use for 5 day forecast
+  latInfo = data.coord.lat;
+  lonInfo = data.coord.lon;
 
-  let latInfo = data.coord.lat;
-  let lonInfo = data.coord.lon;
-
-  //getting necessary data to display today's weather
+  //getting necessary data to display the latest weather
   let cityName = data.name;
   let countryName = data.sys.country;
   let temp = Math.round(data.main.temp);
@@ -50,6 +99,13 @@ async function checkWeather(cityInput) {
   let timeOfRead = dayjs((data.dt + data.timezone) * 1000).format(
     "MMM DD, YYYY [at] HH:mm"
   );
+
+  timeOfReadNextDay = dayjs((data.dt + data.timezone) * 1000)
+    .add(1, "day")
+    .startOf("day")
+    .format("YYYY-MM-DD HH:mm:ss");
+
+  console.log("Next day: " + timeOfReadNextDay);
 
   //rendering today's weather to the webpage
   //TODO: need to add icon for the weather
@@ -70,61 +126,14 @@ async function checkWeather(cityInput) {
     humidityToDisplay,
     windToDisplay
   );
-
-  //adding lat and lon to the forecast url to get 5 day forecast
-  let getForecastURL =
-    "http://api.openweathermap.org/data/2.5/forecast?lat=" +
-    latInfo +
-    "&lon=" +
-    lonInfo +
-    "&units=imperial&appid=" +
-    apiKey;
-
-  const responseTwo = await fetch(getForecastURL);
-  let dataTwo = await responseTwo.json();
-
-console.log(dayjs((dataTwo.list[0].dt + dataTwo.city.timezone) * 1000).toDate());
-
-  console.log(dataTwo);
   
-  for (let i = 0; i < dataTwo.list.length; i = i + 8) {
-    console.log(dataTwo.list[i]);
-  }
-  //dayjs().add(1,'day').startOf('day').unix()
+  storeCityAddBtn(cityName);
+  renderFiveDays();
 
-  //storing into object city details and date added
-  //TODO: Need to check if already exist
-  //TODO: if exists, need to replace
-  //TODO: can I make it a separate function?
-  let cityDetails = {
-    cityNameStorage: cityName,
-    dateTimeStored: dayjs().format("M/D/YYYY, H:m:s"),
-  };
-
-  //pushing details into local storage data array
-  if (localStorageData === null) {
-    localStorageData = [];
-    localStorageData.push(cityDetails);
-  } else {
-    localStorageData.push(cityDetails);
-  }
-
-  //saving local storage data array into localStorage in the browser
-  localStorage.setItem("recentCitiesData", JSON.stringify(localStorageData));
-
-  //adding button on the left with new city name
-  //TODO: Need to check if already exist OR rerender from the storage
-  const newBtnCity = $("<button>")
-    .addClass("btn btn-secondary m-2 rounded-3")
-    .text(cityName);
-
-  $(".btn-group-vertical").append(newBtnCity);
-  //TODO: add even listener for all the buttons on the page to display data for that city
-
-  //TODO: retrieve and render 5-day forecast to the page
 }
 
 $("#search-btn").on("click", function (e) {
   e.preventDefault(e);
   checkWeather($("#search-input").val());
 });
+
