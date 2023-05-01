@@ -81,10 +81,6 @@ function storeCity(cityNameInput, countryName) {
     localStorageData.unshift(cityDetails);
   }
 
-  //localStorageData.unshift(cityDetails);
-  //saving local storage data array into localStorage in the browser
-  // localStorage.setItem("recentCitiesData", JSON.stringify(localStorageData));
-
   //calling function to update recent search buttons
   renderButtons();
 }
@@ -153,12 +149,24 @@ async function renderFiveDays(latInfoPassed, lonInfoPassed) {
   sectionForecast.text("");
 
   //creating container for 5-day forecast
-  const headerFiveDay = $("<h3>").text("5-Day Forecast:");
+  const headerFiveDay = $("<h3>");
+  sectionForecast.append(headerFiveDay);
+
+  let daysToDisplay;
+
+  //checking initial reading is just after midnight, can only see forecast for next 4 days
+  if (indexOfNextDay === 8) {
+    daysToDisplay = 4;
+    headerFiveDay.text("4-Day Forecast (currently available due to local time of the read):");
+  } else {
+    daysToDisplay = 5;
+    headerFiveDay.text("5-Day Forecast:");
+  }
+
   sectionForecast.append(headerFiveDay);
 
   const allCards = $("<section>").addClass("row d-flex justify-content-evenly");
 
-  let daysToDisplay = 5;
   for (indexOfNextDay; daysToDisplay > 0; indexOfNextDay = indexOfNextDay + 8) {
     //retrieving all the data received from weather api
     let dateNEW = dataTwo.list[indexOfNextDay].dt_txt.split(" ")[0];
