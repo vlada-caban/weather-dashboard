@@ -8,16 +8,15 @@ let latInfo;
 let lonInfo;
 let timeOfReadNextDay;
 
-//TODO: Need to render to the page top 10 latest saved cities
+//function to render buttons to the page from storage
 function renderButtons() {
-  //adding button on the left with new city name
+  //clearing buttons section
   $(".btn-group-vertical").text("");
 
+  //checking if anything was stored to local storage yet
   if (localStorageData === null) {
     return;
   } else {
-    //localStorageData.sort((a, b) => a.dateTimeStored - b.dateTimeStored);
-    //localStorageData.sort();
     console.log(localStorageData);
 
     let howManyToRender = 0;
@@ -28,6 +27,7 @@ function renderButtons() {
       howManyToRender = localStorageData.length;
     }
 
+    //rendering to the page latest 10 cities from local storage
     for (let i = 0; i < howManyToRender; i++) {
       let cityNameToRender = localStorageData[i].cityNameStorage;
       const newBtnCity = $("<button>")
@@ -36,16 +36,9 @@ function renderButtons() {
       $(".btn-group-vertical").append(newBtnCity);
     }
   }
-
-  //step 1: clear buttons section
-  //step 2: if storage is empty, return
-  //step 3: if data in storage, sort from newest to latest
-  //step 4: create top 10 buttons
-  //step 5: add even listener if button clicked, if clicked, call check weather for that button
-
-  //TODO: add even listener for all the buttons on the page to display data for that city
 }
 
+//function to store city/country to local storage
 function storeCity(cityNameInput, countryName) {
   //storing into object city details and date added
   //TODO: Need to check if already exist
@@ -61,16 +54,57 @@ function storeCity(cityNameInput, countryName) {
     localStorageData = [];
     localStorageData.unshift(cityDetails);
   } else {
-    //TODO:remove any duplicate city from the storage
+    //TODO:need to remove any duplicate city from the storage prior to this
     localStorageData.unshift(cityDetails);
   }
 
   //saving local storage data array into localStorage in the browser
   localStorage.setItem("recentCitiesData", JSON.stringify(localStorageData));
 
+  //calling function to update recent search buttons
   renderButtons();
 }
 
+//function to get weather icon based on weather ID
+function checkForIcon(iconID) {
+  console.log("checking for icon");
+  // return "🌧️";
+
+  switch (true) {
+    //Thunderstorm
+    case iconID >= 200 && iconID <= 232:
+      return "🌩️";
+      break;
+    //Drizzle
+    case iconID >= 300 && iconID <= 321:
+      return "🌦️";
+      break;
+    //Rain
+    case iconID >= 500 && iconID <= 531:
+      return "🌧️";
+      break;
+    //Snow
+    case iconID >= 600 && iconID <= 622:
+      return "❄️";
+      break;
+    //Atmosphere
+    case iconID >= 701 && iconID <= 781:
+      return "🌫️";
+      break;
+    //Few clouds
+    case iconID === 801:
+      return "⛅";
+      break;
+    //Other clouds
+    case iconID >= 802 && iconID <= 804:
+      return "☁️";
+      break;
+    default:
+      return "☀️";
+  }
+}
+
+//function to check the weather for 5 days and render to the page
 async function renderFiveDays() {
   //adding lat and lon to the forecast url to get 5 day forecast
   let getForecastURL =
@@ -111,19 +145,23 @@ async function renderFiveDays() {
     let reformatedDate = dayjs(dateNEW).format("MMM DD, YYYY");
     // console.log(reformatedDate);
 
-    let tempForecast = dataTwo.list[indexOfNextDay].main.temp;
+    let tempForecast = Math.round(dataTwo.list[indexOfNextDay].main.temp);
     let windForecast = dataTwo.list[indexOfNextDay].wind.speed;
     let humidityForecast = dataTwo.list[indexOfNextDay].main.humidity;
+
+    let weatherIconForecastID = dataTwo.list[indexOfNextDay].weather[0].id;
+    let weatherForecastIcon = checkForIcon(weatherIconForecastID);
 
     //adding all info to the page
     const cardDiv = $("<div>").addClass(
       "mb-3 col-12 col-md-6 col-lg-2 flex-fill"
     );
     const actualCard = $("<div>").addClass("card");
-    const cardDate = $("<div>").addClass("card-header").text(reformatedDate);
+    const cardDate = $("<div>")
+      .addClass("card-header")
+      .text(reformatedDate + " " + weatherForecastIcon);
 
-    const cardBody = $("<div>")
-      .addClass("card-body");
+    const cardBody = $("<div>").addClass("card-body");
     const tempForecastToDisplay = $("<p>").text(
       "Temperature: " + tempForecast + "°F"
     );
@@ -133,11 +171,11 @@ async function renderFiveDays() {
     const windFOrecastToDisplay = $("<p>").text(
       "Wind: " + windForecast + " MPH"
     );
-cardBody.append(
-  tempForecastToDisplay,
-  humidityForecastToDisplay,
-  windFOrecastToDisplay
-);
+    cardBody.append(
+      tempForecastToDisplay,
+      humidityForecastToDisplay,
+      windFOrecastToDisplay
+    );
     actualCard.append(cardDate, cardBody);
     cardDiv.append(actualCard);
     allCards.append(cardDiv);
@@ -147,6 +185,7 @@ cardBody.append(
   sectionForecast.append(allCards);
 }
 
+//function to check the weather and render to the page
 async function checkWeather(cityInput) {
   $("#current-city").text("");
 
@@ -163,9 +202,10 @@ async function checkWeather(cityInput) {
     data.cod === "400"
   ) {
     alert("Invalid city name");
+    location.reload();
   }
 
-  // console.log(data);
+  console.log(data);
 
   //extracting latitude and longitude info to use for 5 day forecast
   latInfo = data.coord.lat;
@@ -178,8 +218,12 @@ async function checkWeather(cityInput) {
   let humidity = data.main.humidity;
   let wind = data.wind.speed;
   let timeOfRead = dayjs((data.dt + data.timezone) * 1000).format(
-    "MMM DD, YYYY [at] HH:mm"
+    "MMM DD, YYYY [at] HH:mm a"
   );
+  let mainWeather = data.weather[0].main;
+
+  let weatherIconID = data.weather[0].id;
+  let weatherIcon = checkForIcon(weatherIconID);
 
   timeOfReadNextDay = dayjs((data.dt + data.timezone) * 1000)
     .add(1, "day")
@@ -191,7 +235,16 @@ async function checkWeather(cityInput) {
   //rendering today's weather to the webpage
   //TODO: need to add icon for the weather
   const cityDate = $("<h2>")
-    .text(cityName + ", " + countryName)
+    .text(
+      cityName +
+        ", " +
+        countryName +
+        " " +
+        weatherIcon +
+        " (" +
+        mainWeather +
+        ")"
+    )
     .addClass("fs-4");
 
   const readTime = $("<p>").text("(Last read local time: " + timeOfRead + ")");
