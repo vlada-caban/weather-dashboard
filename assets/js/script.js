@@ -2,10 +2,7 @@ const apiKey = "";
 
 let queryURL = "http://api.openweathermap.org/data/2.5/weather?";
 
-let localStorageData = JSON.parse(localStorage.getItem("recentCitiesData"));
-
-let latInfo;
-let lonInfo;
+let foundDuplication = false;
 let timeOfReadNextDay;
 
 //function to render buttons to the page from storage
@@ -13,23 +10,25 @@ function renderButtons() {
   //clearing buttons section
   $(".btn-group-vertical").text("");
 
+  //retrieving data before rendering
+  let localStorageDataToRender = JSON.parse(
+    localStorage.getItem("recentCitiesData")
+  );
   //checking if anything was stored to local storage yet
-  if (localStorageData === null) {
+  if (localStorageDataToRender === null) {
     return;
   } else {
-    console.log(localStorageData);
-
+    //console.log(localStorageData);
     let howManyToRender = 0;
-
-    if (localStorageData.length > 10) {
+    if (localStorageDataToRender.length > 10) {
       howManyToRender = 10;
     } else {
-      howManyToRender = localStorageData.length;
+      howManyToRender = localStorageDataToRender.length;
     }
 
     //rendering to the page latest 10 cities from local storage
     for (let i = 0; i < howManyToRender; i++) {
-      let cityNameToRender = localStorageData[i].cityNameStorage;
+      let cityNameToRender = localStorageDataToRender[i].cityNameStorage;
       const newBtnCity = $("<button>")
         .addClass("btn btn-secondary m-2 rounded-3")
         .text(cityNameToRender);
@@ -49,17 +48,42 @@ function storeCity(cityNameInput, countryName) {
     dateTimeStored: dayjs().format("M/D/YYYY, H:m:s"),
   };
 
+  //retrieving data before storing
+  let localStorageData = JSON.parse(localStorage.getItem("recentCitiesData"));
+
   //pushing details into local storage data array
   if (localStorageData === null) {
     localStorageData = [];
     localStorageData.unshift(cityDetails);
+    localStorage.setItem("recentCitiesData", JSON.stringify(localStorageData));
   } else {
     //TODO:need to remove any duplicate city from the storage prior to this
+    // let foundDuplication = false;
+    let updatedLocalStorageData;
+
+    for (let k = 0; k < localStorageData.length; k++) {
+      if (localStorageData[k].cityNameStorage === cityDetails.cityNameStorage) {
+        updatedLocalStorageData = localStorageData.slice(k, 1);
+        foundDuplication = true;
+      }
+    }
+    if (foundDuplication) {
+      updatedLocalStorageData.unshift(cityDetails);
+    } else {
+      localStorageData.unshift(cityDetails);
+      localStorage.setItem(
+        "recentCitiesData",
+        JSON.stringify(localStorageData)
+      );
+    }
+
+    foundDuplication = false;
     localStorageData.unshift(cityDetails);
   }
 
+  //localStorageData.unshift(cityDetails);
   //saving local storage data array into localStorage in the browser
-  localStorage.setItem("recentCitiesData", JSON.stringify(localStorageData));
+  // localStorage.setItem("recentCitiesData", JSON.stringify(localStorageData));
 
   //calling function to update recent search buttons
   renderButtons();
@@ -67,9 +91,6 @@ function storeCity(cityNameInput, countryName) {
 
 //function to get weather icon based on weather ID
 function checkForIcon(iconID) {
-  console.log("checking for icon");
-  // return "🌧️";
-
   switch (true) {
     //Thunderstorm
     case iconID >= 200 && iconID <= 232:
@@ -105,21 +126,20 @@ function checkForIcon(iconID) {
 }
 
 //function to check the weather for 5 days and render to the page
-async function renderFiveDays() {
+async function renderFiveDays(latInfoPassed, lonInfoPassed) {
   //adding lat and lon to the forecast url to get 5 day forecast
   let getForecastURL =
     "http://api.openweathermap.org/data/2.5/forecast?lat=" +
-    latInfo +
+    latInfoPassed +
     "&lon=" +
-    lonInfo +
+    lonInfoPassed +
     "&units=imperial&appid=" +
     apiKey;
 
   const responseTwo = await fetch(getForecastURL);
   let dataTwo = await responseTwo.json();
 
-  console.log(dataTwo);
-  console.log("Next day (in 5 day forecast function): " + timeOfReadNextDay);
+  //console.log(dataTwo);
 
   let indexOfNextDay = 0;
   for (let j = 0; j < dataTwo.list.length; j++) {
@@ -127,7 +147,7 @@ async function renderFiveDays() {
       indexOfNextDay = j;
     }
   }
-  console.log("Found Index: " + indexOfNextDay);
+
   //clearing container
   const sectionForecast = $("#five-day-forecast");
   sectionForecast.text("");
@@ -140,10 +160,9 @@ async function renderFiveDays() {
 
   let daysToDisplay = 5;
   for (indexOfNextDay; daysToDisplay > 0; indexOfNextDay = indexOfNextDay + 8) {
-    // console.log(dataTwo.list[indexOfNextDay].dt_txt);
+    //retrieving all the data received from weather api
     let dateNEW = dataTwo.list[indexOfNextDay].dt_txt.split(" ")[0];
     let reformatedDate = dayjs(dateNEW).format("MMM DD, YYYY");
-    // console.log(reformatedDate);
 
     let tempForecast = Math.round(dataTwo.list[indexOfNextDay].main.temp);
     let windForecast = dataTwo.list[indexOfNextDay].wind.speed;
@@ -179,9 +198,9 @@ async function renderFiveDays() {
     actualCard.append(cardDate, cardBody);
     cardDiv.append(actualCard);
     allCards.append(cardDiv);
+
     daysToDisplay--;
   }
-
   sectionForecast.append(allCards);
 }
 
@@ -205,11 +224,11 @@ async function checkWeather(cityInput) {
     location.reload();
   }
 
-  console.log(data);
+  //console.log(data);
 
   //extracting latitude and longitude info to use for 5 day forecast
-  latInfo = data.coord.lat;
-  lonInfo = data.coord.lon;
+  let latInfo = data.coord.lat;
+  let lonInfo = data.coord.lon;
 
   //getting necessary data to display the latest weather
   let cityName = data.name;
@@ -225,15 +244,13 @@ async function checkWeather(cityInput) {
   let weatherIconID = data.weather[0].id;
   let weatherIcon = checkForIcon(weatherIconID);
 
+  //calculating what would be the next day at 12am
   timeOfReadNextDay = dayjs((data.dt + data.timezone) * 1000)
     .add(1, "day")
     .startOf("day")
     .format("YYYY-MM-DD HH:mm:ss");
 
-  console.log("Next day: " + timeOfReadNextDay);
-
   //rendering today's weather to the webpage
-  //TODO: need to add icon for the weather
   const cityDate = $("<h2>")
     .text(
       cityName +
@@ -261,26 +278,31 @@ async function checkWeather(cityInput) {
     windToDisplay
   );
 
+  renderFiveDays(latInfo, lonInfo);
   storeCity(cityName, countryName);
-  renderFiveDays();
 }
 
+//rendering search buttons from local storage on page load
 renderButtons();
 
-$("#search-btn").on("click", function (e) {
+//event listener for Search form
+$("#search-form").on("submit", function (e) {
   e.preventDefault(e);
-  checkWeather($("#search-input").val());
+  let cityInput = $("#search-input").val();
+  $("#search-input").val("");
+  checkWeather(cityInput);
 });
 
+//event listener for Clear search history button
 $("#clear-history").on("click", function (e) {
   e.preventDefault(e);
   localStorage.clear();
   location.reload();
 });
 
-$(".btn-group-vertical").on("click", function (e) {
+//event listener for any buttons from search history
+$(".btn-group-vertical").on("click", ".btn", function (e) {
   e.preventDefault(e);
   let cityClicked = e.target.innerHTML;
-  console.log(cityClicked);
   checkWeather(cityClicked);
 });
