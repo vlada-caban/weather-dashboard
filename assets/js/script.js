@@ -11,14 +11,13 @@ let timeOfReadNextDay;
 //TODO: Need to render to the page top 10 latest saved cities
 function renderButtons() {
   //adding button on the left with new city name
-
   $(".btn-group-vertical").text("");
+
   if (localStorageData === null) {
     return;
   } else {
-    // localStorageData.sort((a, b) => a.dateTimeStored - b.dateTimeStored);
-    localStorageData.sort();
-
+    //localStorageData.sort((a, b) => a.dateTimeStored - b.dateTimeStored);
+    //localStorageData.sort();
     console.log(localStorageData);
 
     let howManyToRender = 0;
@@ -36,11 +35,7 @@ function renderButtons() {
         .text(cityNameToRender);
       $(".btn-group-vertical").append(newBtnCity);
     }
-
-    
   }
-
-  
 
   //step 1: clear buttons section
   //step 2: if storage is empty, return
@@ -91,6 +86,65 @@ async function renderFiveDays() {
 
   console.log(dataTwo);
   console.log("Next day (in 5 day forecast function): " + timeOfReadNextDay);
+
+  let indexOfNextDay = 0;
+  for (let j = 0; j < dataTwo.list.length; j++) {
+    if (dataTwo.list[j].dt_txt === timeOfReadNextDay) {
+      indexOfNextDay = j;
+    }
+  }
+  console.log("Found Index: " + indexOfNextDay);
+  //clearing container
+  const sectionForecast = $("#five-day-forecast");
+  sectionForecast.text("");
+
+  //creating container for 5-day forecast
+  const headerFiveDay = $("<h3>").text("5-Day Forecast:");
+  sectionForecast.append(headerFiveDay);
+
+  const allCards = $("<section>").addClass("row d-flex justify-content-evenly");
+
+  let daysToDisplay = 5;
+  for (indexOfNextDay; daysToDisplay > 0; indexOfNextDay = indexOfNextDay + 8) {
+    // console.log(dataTwo.list[indexOfNextDay].dt_txt);
+    let dateNEW = dataTwo.list[indexOfNextDay].dt_txt.split(" ")[0];
+    let reformatedDate = dayjs(dateNEW).format("MMM DD, YYYY");
+    // console.log(reformatedDate);
+
+    let tempForecast = dataTwo.list[indexOfNextDay].main.temp;
+    let windForecast = dataTwo.list[indexOfNextDay].wind.speed;
+    let humidityForecast = dataTwo.list[indexOfNextDay].main.humidity;
+
+    //adding all info to the page
+    const cardDiv = $("<div>").addClass(
+      "mb-3 col-12 col-md-6 col-lg-2 flex-fill"
+    );
+    const actualCard = $("<div>").addClass("card");
+    const cardDate = $("<div>").addClass("card-header").text(reformatedDate);
+
+    const cardBody = $("<div>")
+      .addClass("card-body");
+    const tempForecastToDisplay = $("<p>").text(
+      "Temperature: " + tempForecast + "°F"
+    );
+    const humidityForecastToDisplay = $("<p>").text(
+      "Humidity: " + humidityForecast + "%"
+    );
+    const windFOrecastToDisplay = $("<p>").text(
+      "Wind: " + windForecast + " MPH"
+    );
+cardBody.append(
+  tempForecastToDisplay,
+  humidityForecastToDisplay,
+  windFOrecastToDisplay
+);
+    actualCard.append(cardDate, cardBody);
+    cardDiv.append(actualCard);
+    allCards.append(cardDiv);
+    daysToDisplay--;
+  }
+
+  sectionForecast.append(allCards);
 }
 
 async function checkWeather(cityInput) {
@@ -165,9 +219,15 @@ $("#search-btn").on("click", function (e) {
   checkWeather($("#search-input").val());
 });
 
+$("#clear-history").on("click", function (e) {
+  e.preventDefault(e);
+  localStorage.clear();
+  location.reload();
+});
+
 $(".btn-group-vertical").on("click", function (e) {
-      e.preventDefault(e);
-      let cityClicked = e.target.innerHTML;
-      console.log(cityClicked);
-      checkWeather(cityClicked);
-    });
+  e.preventDefault(e);
+  let cityClicked = e.target.innerHTML;
+  console.log(cityClicked);
+  checkWeather(cityClicked);
+});
