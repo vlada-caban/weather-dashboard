@@ -6,46 +6,75 @@ let localStorageData = JSON.parse(localStorage.getItem("recentCitiesData"));
 
 let latInfo;
 let lonInfo;
-
 let timeOfReadNextDay;
 
-let data;
 //TODO: Need to render to the page top 10 latest saved cities
+function renderButtons() {
+  //adding button on the left with new city name
 
-function storeCityAddBtn(cityNameInput) {
+  $(".btn-group-vertical").text("");
+  if (localStorageData === null) {
+    return;
+  } else {
+    // localStorageData.sort((a, b) => a.dateTimeStored - b.dateTimeStored);
+    localStorageData.sort();
+
+    console.log(localStorageData);
+
+    let howManyToRender = 0;
+
+    if (localStorageData.length > 10) {
+      howManyToRender = 10;
+    } else {
+      howManyToRender = localStorageData.length;
+    }
+
+    for (let i = 0; i < howManyToRender; i++) {
+      let cityNameToRender = localStorageData[i].cityNameStorage;
+      const newBtnCity = $("<button>")
+        .addClass("btn btn-secondary m-2 rounded-3")
+        .text(cityNameToRender);
+      $(".btn-group-vertical").append(newBtnCity);
+    }
+
+    
+  }
+
+  
+
+  //step 1: clear buttons section
+  //step 2: if storage is empty, return
+  //step 3: if data in storage, sort from newest to latest
+  //step 4: create top 10 buttons
+  //step 5: add even listener if button clicked, if clicked, call check weather for that button
+
+  //TODO: add even listener for all the buttons on the page to display data for that city
+}
+
+function storeCity(cityNameInput, countryName) {
   //storing into object city details and date added
   //TODO: Need to check if already exist
   //TODO: if exists, need to replace
   //TODO: can I make it a separate function?
   let cityDetails = {
-    cityNameStorage: cityNameInput,
+    cityNameStorage: cityNameInput + ", " + countryName,
     dateTimeStored: dayjs().format("M/D/YYYY, H:m:s"),
   };
 
   //pushing details into local storage data array
   if (localStorageData === null) {
     localStorageData = [];
-    localStorageData.push(cityDetails);
+    localStorageData.unshift(cityDetails);
   } else {
-    localStorageData.push(cityDetails);
+    //TODO:remove any duplicate city from the storage
+    localStorageData.unshift(cityDetails);
   }
 
   //saving local storage data array into localStorage in the browser
   localStorage.setItem("recentCitiesData", JSON.stringify(localStorageData));
 
-  //adding button on the left with new city name
-  //TODO: Need to check if already exist OR rerender from the storage
-  const newBtnCity = $("<button>")
-    .addClass("btn btn-secondary m-2 rounded-3")
-    .text(cityNameInput);
-
-  $(".btn-group-vertical").append(newBtnCity);
-  //TODO: add even listener for all the buttons on the page to display data for that city
-
-  //TODO: retrieve and render 5-day forecast to the page
+  renderButtons();
 }
-
-
 
 async function renderFiveDays() {
   //adding lat and lon to the forecast url to get 5 day forecast
@@ -62,9 +91,7 @@ async function renderFiveDays() {
 
   console.log(dataTwo);
   console.log("Next day (in 5 day forecast function): " + timeOfReadNextDay);
-
 }
-
 
 async function checkWeather(cityInput) {
   $("#current-city").text("");
@@ -72,7 +99,7 @@ async function checkWeather(cityInput) {
   const response = await fetch(
     queryURL + "q=" + cityInput + "&units=imperial&appid=" + apiKey
   );
-  data = await response.json();
+  let data = await response.json();
 
   //checking if errors with city entry
   if (
@@ -84,7 +111,7 @@ async function checkWeather(cityInput) {
     alert("Invalid city name");
   }
 
-  console.log(data);
+  // console.log(data);
 
   //extracting latitude and longitude info to use for 5 day forecast
   latInfo = data.coord.lat;
@@ -126,14 +153,21 @@ async function checkWeather(cityInput) {
     humidityToDisplay,
     windToDisplay
   );
-  
-  storeCityAddBtn(cityName);
-  renderFiveDays();
 
+  storeCity(cityName, countryName);
+  renderFiveDays();
 }
+
+renderButtons();
 
 $("#search-btn").on("click", function (e) {
   e.preventDefault(e);
   checkWeather($("#search-input").val());
 });
 
+$(".btn-group-vertical").on("click", function (e) {
+      e.preventDefault(e);
+      let cityClicked = e.target.innerHTML;
+      console.log(cityClicked);
+      checkWeather(cityClicked);
+    });
