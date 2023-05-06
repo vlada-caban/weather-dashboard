@@ -1,6 +1,6 @@
 const apiKey = "d6f32eadc26bfa1d1789657fa842360d";
 
-let queryURL = "http://api.openweathermap.org/data/2.5/weather?";
+let queryURL = "https://api.openweathermap.org/data/2.5/weather?";
 
 let foundDuplication = false;
 let timeOfReadNextDay;
@@ -120,7 +120,7 @@ function checkForIcon(iconID) {
 async function renderFiveDays(latInfoPassed, lonInfoPassed) {
   //adding lat and lon to the forecast url to get 5 day forecast
   let getForecastURL =
-    "http://api.openweathermap.org/data/2.5/forecast?lat=" +
+    "https://api.openweathermap.org/data/2.5/forecast?lat=" +
     latInfoPassed +
     "&lon=" +
     lonInfoPassed +
