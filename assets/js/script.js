@@ -1,4 +1,4 @@
-const apiKey = "";
+const apiKey = "d6f32eadc26bfa1d1789657fa842360d";
 
 let queryURL = "http://api.openweathermap.org/data/2.5/weather?";
 
@@ -40,9 +40,6 @@ function renderButtons() {
 //function to store city/country to local storage
 function storeCity(cityNameInput, countryName) {
   //storing into object city details and date added
-  //TODO: Need to check if already exist
-  //TODO: if exists, need to replace
-  //TODO: can I make it a separate function?
   let cityDetails = {
     cityNameStorage: cityNameInput + ", " + countryName,
     dateTimeStored: dayjs().format("M/D/YYYY, H:m:s"),
@@ -57,10 +54,8 @@ function storeCity(cityNameInput, countryName) {
     localStorageData.unshift(cityDetails);
     localStorage.setItem("recentCitiesData", JSON.stringify(localStorageData));
   } else {
-    //TODO:need to remove any duplicate city from the storage prior to this
-    // let foundDuplication = false;
     let updatedLocalStorageData;
-
+    //checking for duplication within local storage
     for (let k = 0; k < localStorageData.length; k++) {
       if (localStorageData[k].cityNameStorage === cityDetails.cityNameStorage) {
         updatedLocalStorageData = localStorageData.slice(k, 1);
@@ -157,7 +152,9 @@ async function renderFiveDays(latInfoPassed, lonInfoPassed) {
   //checking initial reading is just after midnight, can only see forecast for next 4 days
   if (indexOfNextDay === 8) {
     daysToDisplay = 4;
-    headerFiveDay.text("4-Day Forecast (currently available due to local time of the read):");
+    headerFiveDay.text(
+      "4-Day Forecast (currently available due to local time of the read):"
+    );
   } else {
     daysToDisplay = 5;
     headerFiveDay.text("5-Day Forecast:");
