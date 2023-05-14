@@ -130,7 +130,7 @@ async function renderFiveDays(latInfoPassed, lonInfoPassed) {
   const responseTwo = await fetch(getForecastURL);
   let dataTwo = await responseTwo.json();
 
-  //console.log(dataTwo);
+  console.log(dataTwo);
 
   let indexOfNextDay = 0;
   for (let j = 0; j < dataTwo.list.length; j++) {
@@ -254,6 +254,13 @@ async function checkWeather(cityInput) {
     .add(1, "day")
     .startOf("day")
     .format("YYYY-MM-DD HH:mm:ss");
+    
+//   timeOfReadNextDay = dayjs((data.dt + data.timezone) * 1000)
+//     .add(1, "day")
+//     .format("YYYY-MM-DD");
+
+//     timeOfReadNextDay = timeOfReadNextDay + " 12:00:00";
+// console.log(timeOfReadNextDay);
 
   //rendering today's weather to the webpage
   const cityDate = $("<h2>")
