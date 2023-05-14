@@ -170,7 +170,7 @@ async function renderFiveDays(latInfoPassed, lonInfoPassed) {
     let reformatedDate = dayjs(dateNEW).format("MMM DD, YYYY");
 
     let tempForecast = Math.round(dataTwo.list[indexOfNextDay].main.temp);
-    let windForecast = dataTwo.list[indexOfNextDay].wind.speed;
+    let windForecast = dataTwo.list[indexOfNextDay].wind.speed.toFixed(2);;
     let humidityForecast = dataTwo.list[indexOfNextDay].main.humidity;
 
     let weatherIconForecastID = dataTwo.list[indexOfNextDay].weather[0].id;
